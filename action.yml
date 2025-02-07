@@ -1,4 +1,5 @@
 name: "Build ESP-IDF Projects"
+description: "Build ESP-IDF projects"
 
 inputs:
   paths:
@@ -15,7 +16,7 @@ inputs:
     default: "1"
   idf_path:
     description: path to the ESP-IDF
-    default: /opt/esp-idf
+    default: /opt/esp/idf
 
 runs:
   using: "composite"
@@ -27,9 +28,25 @@ runs:
     - name: Install Dependencies
       shell: bash
       run: |
+        . ${{ inputs.idf_path }}/export.sh
         pip install -U idf-ci
     - name: Build ESP-IDF Projects
       shell: bash
       run: |
-        idf-ci build
-          --paths ${{ inputs.paths }} --target ${{ inputs.target }} --parallel-index ${{ inputs.parallel_index }} --parallel-count ${{ inputs.parallel_count }} --modified-files ${{ steps.changed-files.outputs.files }}
+        . ${{ inputs.idf_path }}/export.sh
+        idf-ci build run --paths ${{ inputs.paths }} --target ${{ inputs.target }} --parallel-index ${{ inputs.parallel_index }} --parallel-count ${{ inputs.parallel_count }} --modified-files "${{ steps.changed-files.outputs.all_changed_files }}"
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: app_binaries_${{ inputs.parallel_index }}
+        path: |
+          **/build_*_*/bootloader/bootloader.bin
+          **/build_*_*/partition_table/partition-table.bin
+          **/build_*_*/*.bin
+          **/build_*_*/flasher_args.json
+          **/build_*_*/config/sdkconfig.json
+          **/build_*_*/size.json
+          **/build_*_*/build.log
+          app_info_*.txt
+          build_summary_*.xml
+          size_info_*.txt
