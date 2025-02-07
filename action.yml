@@ -1,0 +1,35 @@
+name: "Build ESP-IDF Projects"
+
+inputs:
+  paths:
+    description: space-separated paths to the esp-idf project
+    default: .
+  target:
+    description: target to build
+    default: all
+  parallel_index:
+    description: 1-based index of the parallel job
+    default: "1"
+  parallel_count:
+    description: total number of parallel jobs
+    default: "1"
+  idf_path:
+    description: path to the ESP-IDF
+    default: /opt/esp-idf
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+    - name: Get changed files
+      id: changed-files
+      uses: tj-actions/changed-files@v45
+    - name: Install Dependencies
+      shell: bash
+      run: |
+        pip install -U idf-ci
+    - name: Build ESP-IDF Projects
+      shell: bash
+      run: |
+        idf-ci build
+          --paths ${{ inputs.paths }} --target ${{ inputs.target }} --parallel-index ${{ inputs.parallel_index }} --parallel-count ${{ inputs.parallel_count }} --modified-files ${{ steps.changed-files.outputs.files }}
