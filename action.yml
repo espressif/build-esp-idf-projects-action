@@ -17,6 +17,8 @@ inputs:
   idf_path:
     description: path to the ESP-IDF
     default: /opt/esp/idf
+  modified_files:
+    description: "[FOR INTERNAL TEST] semicolon-separated list of modified files. By default get from PR"
 
 runs:
   using: "composite"
@@ -24,6 +26,7 @@ runs:
     - uses: actions/checkout@v4
     - name: Get changed files
       id: changed-files
+      if: ${{ !inputs.modified_files }}
       uses: tj-actions/changed-files@v45
     - name: Install Dependencies
       shell: bash
@@ -34,7 +37,12 @@ runs:
       shell: bash
       run: |
         . ${{ inputs.idf_path }}/export.sh
-        idf-ci build run --paths ${{ inputs.paths }} --target ${{ inputs.target }} --parallel-index ${{ inputs.parallel_index }} --parallel-count ${{ inputs.parallel_count }} --modified-files "${{ steps.changed-files.outputs.all_changed_files }}"
+        idf-ci build run \
+          --paths ${{ inputs.paths }} \
+          --target ${{ inputs.target }} \
+          --parallel-index ${{ inputs.parallel_index }} \
+          --parallel-count ${{ inputs.parallel_count }} \
+          --modified-files "${{ inputs.modified_files || steps.changed-files.outputs.all_changed_files }}"
     - name: Upload Build Artifacts
       uses: actions/upload-artifact@v4
       with:
