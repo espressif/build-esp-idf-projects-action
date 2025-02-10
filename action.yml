@@ -19,6 +19,8 @@ inputs:
     default: /opt/esp/idf
   modified_files:
     description: "[FOR INTERNAL TEST] semicolon-separated list of modified files. By default get from PR"
+  artifact_name:
+    description: "[FOR INTERNAL TEST] name of the artifact. By default app_binaries_{inputs.parallel_index}"
 
 runs:
   using: "composite"
@@ -28,6 +30,12 @@ runs:
       id: changed-files
       if: ${{ !inputs.modified_files }}
       uses: tj-actions/changed-files@v45
+    - name: Debug Info
+      shell: bash
+      run: |
+        pwd
+        ls -R
+        echo "${{ inputs.modified_files || steps.changed-files.outputs.all_changed_files }}"
     - name: Install Dependencies
       shell: bash
       run: |
@@ -37,7 +45,7 @@ runs:
       shell: bash
       run: |
         . ${{ inputs.idf_path }}/export.sh
-        idf-ci build run \
+        idf-ci -vv build run \
           --paths ${{ inputs.paths }} \
           --target ${{ inputs.target }} \
           --parallel-index ${{ inputs.parallel_index }} \
@@ -46,7 +54,7 @@ runs:
     - name: Upload Build Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: app_binaries_${{ inputs.parallel_index }}
+        name: ${{ inputs.artifact_name || format('app_binaries_{0}', inputs.parallel_index) }}
         path: |
           **/build_*_*/bootloader/bootloader.bin
           **/build_*_*/partition_table/partition-table.bin
