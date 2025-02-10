@@ -1,0 +1,62 @@
+name: Test on Examples
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  trigger-event:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger build-examples on ${{ vars.TRIGGER_ACTION_REPO }}
+        run: |
+          curl -L \
+            -X POST \
+            -H "Authorization: Bearer ${{ secrets.TRIGGER_ACTION_TOKEN }}" \
+            https://api.github.com/repos/${{ vars.TRIGGER_ACTION_REPO }}/dispatches \
+            -d '{"event_type":"build-examples"}'
+      - name: get the latest workflow run
+        run: |
+          # Wait for the event to be processed
+          sleep 10
+
+          # Get the latest workflow run
+          json=$(curl -L \
+              -H "Authorization: Bearer ${{ secrets.TRIGGER_ACTION_TOKEN }}" \
+              -H "Accept: application/vnd.github.v3+json" \
+              "https://api.github.com/repos/${{ vars.TRIGGER_ACTION_REPO }}/actions/runs")
+
+          echo "WORKFLOW_URL=$(echo $json | jq -r '.workflow_runs[0].url')" >> $GITHUB_ENV
+      - name: check the status of the workflow
+        run: |
+          echo "Workflow URL: ${{ env.WORKFLOW_URL }}"
+          for i in {1..30}; do
+            json=$(curl -L \
+                -H "Authorization: Bearer ${{ secrets.TRIGGER_ACTION_TOKEN }}" \
+                -H "Accept: application/vnd.github.v3+json" \
+                ${{ env.WORKFLOW_URL }})
+            WORKFLOW_STATUS=$(echo $json | jq -r '.status')
+            WORKFLOW_CONCLUSION=$(echo $json | jq -r '.conclusion')
+
+            echo "Current status: $WORKFLOW_STATUS, conclusion: $WORKFLOW_CONCLUSION"
+
+            if [ "$WORKFLOW_STATUS" = "completed" ]; then
+              if [ "$WORKFLOW_CONCLUSION" = "success" ]; then
+                echo "Workflow completed successfully!"
+                exit 0
+              else
+                echo "Workflow failed with conclusion: $WORKFLOW_CONCLUSION"
+                exit 1
+              fi
+            fi
+
+            echo "Waiting for workflow to complete... (attempt $i/30)"
+            sleep 20
+          done
+
+          echo "Timeout waiting for workflow to complete"
+          exit 1
