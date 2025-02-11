@@ -3,7 +3,7 @@ description: "Build ESP-IDF projects"
 
 inputs:
   paths:
-    description: space-separated paths to the esp-idf project
+    description: semicolon-separated paths to the esp-idf project
     default: .
   target:
     description: target to build
@@ -30,12 +30,6 @@ runs:
       id: changed-files
       if: ${{ !inputs.modified_files }}
       uses: tj-actions/changed-files@v45
-    - name: Debug Info
-      shell: bash
-      run: |
-        pwd
-        ls -R
-        echo "${{ inputs.modified_files || steps.changed-files.outputs.all_changed_files }}"
     - name: Install Dependencies
       shell: bash
       run: |
@@ -45,8 +39,15 @@ runs:
       shell: bash
       run: |
         . ${{ inputs.idf_path }}/export.sh
-        idf-ci -vv build run \
-          --paths ${{ inputs.paths }} \
+
+        INPUT_PATHS="${{ inputs.paths }}"
+        ARGS=""
+        for INPUT_PATH in ${INPUT_PATHS//;/ }; do
+          ARGS+=" --paths $INPUT_PATH"
+        done
+
+        idf-ci build run \
+          $ARGS \
           --target ${{ inputs.target }} \
           --parallel-index ${{ inputs.parallel_index }} \
           --parallel-count ${{ inputs.parallel_count }} \
