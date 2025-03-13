@@ -22,6 +22,11 @@ inputs:
   artifact_name:
     description: "[FOR INTERNAL TEST] name of the artifact. By default app_binaries_{inputs.parallel_index}"
 
+outputs:
+  test_matrix_json:
+    description: JSON string containing the test matrix
+    value: ${{ steps.setup-test-matrix.outputs.test_matrix_json }}
+
 runs:
   using: "composite"
   steps:
@@ -67,3 +72,9 @@ runs:
           app_info_*.txt
           build_summary_*.xml
           size_info_*.txt
+    - id: setup-test-matrix
+      shell: bash
+      run: |
+        . ${{ inputs.idf_path }}/export.sh
+
+        echo "test_matrix_json=$(idf-ci test collect --format github)" >> $GITHUB_OUTPUT
