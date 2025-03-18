@@ -34,7 +34,7 @@ runs:
     - name: Get changed files
       id: changed-files
       if: ${{ !inputs.modified_files }}
-      uses: tj-actions/changed-files@v45
+      uses: step-security/changed-files@v45
     - name: Install Dependencies
       shell: bash
       run: |
