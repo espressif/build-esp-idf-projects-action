@@ -23,6 +23,9 @@ inputs:
     description: "[FOR INTERNAL TEST] name of the artifact. By default app_binaries_{inputs.parallel_index}"
 
 outputs:
+  artifact_name:
+    description: name of the artifact
+    value: ${{ steps.upload-artifact.outputs.artifact_name }}
   test_matrix_json:
     description: JSON string containing the test matrix
     value: ${{ steps.setup-test-matrix.outputs.test_matrix_json }}
